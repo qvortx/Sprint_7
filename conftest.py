@@ -1,6 +1,6 @@
 import pytest
 import allure
-from helpers import register_new_courier_and_return_login_password, generate_courier_payload
+from helpers import generate_courier_payload
 from courier_methods import CourierMethods
 from order_methods import OrderMethods
 
@@ -8,15 +8,11 @@ from order_methods import OrderMethods
 @pytest.fixture
 def registered_courier():
     """
-    Создаёт курьера перед тестом с помощью метода из задания,
-    возвращает его данные и удаляет курьера после завершения теста.
+    Создаёт курьера перед тестом, возвращает его данные
+    и удаляет курьера после завершения теста.
     """
-    login_pass = register_new_courier_and_return_login_password()
-    courier_data = {
-        "login": login_pass[0],
-        "password": login_pass[1],
-        "firstName": login_pass[2]
-    }
+    courier_data = generate_courier_payload()
+    CourierMethods.create_courier(courier_data)
 
     yield courier_data
 
@@ -25,16 +21,15 @@ def registered_courier():
             "login": courier_data["login"],
             "password": courier_data["password"]
         })
-        if login_response.status_code == 200:
-            courier_id = login_response.json().get("id")
-            CourierMethods.delete_courier(courier_id)
+        courier_id = login_response.json().get("id")
+        CourierMethods.delete_courier(courier_id)
 
 
 @pytest.fixture
 def new_courier_payload():
     """
     Генерирует словарь данных для регистрации нового курьера,
-    а после выполнения теста проверяет, был ли он создан, и удаляет его.
+    а после выполнения теста удаляет созданного курьера.
     """
     payload = generate_courier_payload()
 
@@ -45,9 +40,8 @@ def new_courier_payload():
             "login": payload["login"],
             "password": payload["password"]
         })
-        if login_response.status_code == 200:
-            courier_id = login_response.json().get("id")
-            CourierMethods.delete_courier(courier_id)
+        courier_id = login_response.json().get("id")
+        CourierMethods.delete_courier(courier_id)
 
 
 @pytest.fixture
@@ -61,5 +55,4 @@ def order_cleanup():
 
     with allure.step("Пост-условие (Teardown): отменить созданный тестовый заказ"):
         for track in tracks:
-            if track:
-                OrderMethods.cancel_order(track)
+            OrderMethods.cancel_order(track)
